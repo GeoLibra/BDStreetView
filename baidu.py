@@ -3,7 +3,7 @@ import time
 import datetime
 import json
 import proxy as pp
-
+from contextlib import closing
 class BaiduAPI():
 
     def search_photo(self, name, token, proxy,longitude, latitude, head, imgW, imgH):
@@ -18,36 +18,30 @@ class BaiduAPI():
             "height": imgH
         }
         # Download pictures
-        try:
-            r = requests.get("http://api.map.baidu.com/panorama/v2", params,  proxies={"http": proxy},timeout=500)
-        except:
-            for i in range(0,10):
-                time.sleep(3)
-                r = requests.get("http://api.map.baidu.com/panorama/v2", params, timeout=500)
-                if r.status_code==200:
-                    break
-            if r.status_code!=200:
-                raise RuntimeError('Error')
-        try:
-            result = r.content.decode('utf-8')
-            result = json.loads(result)
-            if result['status'] == '302':
-                return 0
-            elif result['status'] == '402':
-                s = name + ',' + longitude + ',' + latitude
-                open('un.txt', 'a').write(s + '\n')
-                return 1
-            else:
-                # 获取出问题的写入日志
-                open('log.txt',
-                     'a').write(result + ";" + token + ';' + name + '\n')
-                return 0
-        except Exception as e:
+        with closing(requests.get("http://api.map.baidu.com/panorama/v2", params, stream=True, proxies={"http": proxy},timeout=500)) as r:
 
-            open("./photos/" + name + "_{0}.png".format(head),
-                 'wb').write(r.content)
-            time.sleep(2)
-            return 1
+            try:
+                result = r.content.decode('utf-8')
+                result = json.loads(result)
+                if result['status'] == '302':
+                    return 0
+                elif result['status'] == '402':
+                    s = name + ',' + longitude + ',' + latitude
+                    open('un.txt', 'a').write(s + '\n')
+                    return 1
+                else:
+                    # 获取出问题的写入日志
+                    open('log.txt',
+                         'a').write(result + ";" + token + ';' + name + '\n')
+                    return 0
+            except Exception as e:
+
+                # open("./photos/" + name + "_{0}.png".format(head),
+                #      'wb').write(r.content)
+                with open("./photos/" + name + "_{0}.png".format(head),'rb') as f:
+                    for chunk in r.iter_content(128):
+                        f.write(chunk)
+                    return 1
 
     def tokens(self):
         f = open("token.txt", "r")
