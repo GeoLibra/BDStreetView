@@ -58,6 +58,7 @@ class Proxy:
 
     # 验证已得到IP的可用性
     def test_proxies(sefl,proxy):
+
         ip=proxy.split(':')[0]
         port=proxy.split(':')[1]
         try:
