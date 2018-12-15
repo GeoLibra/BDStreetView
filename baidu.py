@@ -48,23 +48,21 @@ class BaiduAPI():
         return [line.strip() for line in f.readlines()]
 
     def validtoken(self):
-        tokens = baidu.tokens()
+        tokens = self.tokens()
         data = []
         for token in tokens:
             token = token.strip()
-            url = 'http://api.map.baidu.com/panorama/v2?ak=' + token + '&width=512&height=256&location=116.313393,40.04778&fov=180  '
+            url = 'http://api.map.baidu.com/panorama/v2?ak=' + token + '&width=512&height=256&location=116.313393,40.04778&fov=180 '
             r = requests.get(url)
+
+            if r['status'] == '0':
+                data.append(token)
             try:
                 result = r.content.decode('utf-8')
-                if "APP" in result:  # 失效的
-                    print(token)
+                if result['status'] != '0':
                     print(result)
-                else:
-                    data.append(token)
             except Exception as e:
-                print(e)
-                print(r.content)
-                open("./photos/" + token + ".png", 'wb').write(r.content)
+                open(token + ".png", 'wb').write(r.content)
                 data.append(token)
         f = open("valid.txt", 'w')
         f.write('\n'.join(data))
