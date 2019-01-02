@@ -4,6 +4,7 @@ import datetime
 import json
 import proxy as pp
 from contextlib import closing
+from os.path import getsize
 class BaiduAPI():
 
     def search_photo(self, name, token, proxy,longitude, latitude, head, imgW, imgH):
@@ -54,17 +55,17 @@ class BaiduAPI():
             token = token.strip()
             url = 'http://api.map.baidu.com/panorama/v2?ak=' + token + '&width=512&height=256&location=116.313393,40.04778&fov=180 '
             r = requests.get(url)
-
-            if r['status'] == '0':
-                data.append(token)
             try:
                 result = r.content.decode('utf-8')
+
                 if result['status'] != '0':
                     print(result)
             except Exception as e:
                 open(token + ".png", 'wb').write(r.content)
-                data.append(token)
-        f = open("valid.txt", 'w')
+                imgS=getsize(token + ".png")
+                if imgS>1024:
+                    data.append(token)
+        f = open("valid.txt", 'w+')
         f.write('\n'.join(data))
         f.close()
     def getProxy(self):
@@ -79,93 +80,94 @@ if __name__ == '__main__':
     imgW = 600  # 0-1024
     imgH = 400  # 10-512
     baidu = BaiduAPI()
-    tokens = baidu.tokens()
-    today = datetime.date.today()
-    first = tokens[0].strip()
-    # baidu.validtoken()
-    f = open('count.txt', 'r')
-    count = int(f.readlines()[0])
-    proxy_time=time.time() # 代理使用时间
-    proxys=baidu.getProxy()
-    proxy=proxys.pop()
-    p = pp.Proxy()
-    with open('sz_sample.csv', 'r', encoding='utf-8') as data:
-        lines = data.readlines()[count-1:]
-        for line in lines:
-            line = line.strip()
-            name = line.split(',')[0]
-            open("count.txt", 'w+').write(name)
-            longitude = line.split(',')[1].strip()
-            latitude = line.split(',')[2].strip()
-            if time.time()-proxy_time>8*60:
-                # 超过8分钟切换一次代理
-                proxy_time=time.time()
-                if len(proxys)==0:
-                    proxys=baidu.getProxy()
-                proxy=proxys.pop()
-            headings = [0, 90, 180, 270]
-
-            for head in headings:
-                while p.test_proxies(proxy)==False:
-                    if len(proxys) == 0:
-                        proxys = baidu.getProxy()
-                    proxy = proxys.pop()
-
-                result = baidu.search_photo(name, tokens[0], proxy,longitude,
-                                            latitude, head, imgW, imgH)
-                # print(head, line)
-                while result == 0:
-                    # time.sleep(10)
-                    # 超过限制
-                    tokens.append(tokens[0])  # 将第一个添加到末尾
-                    tokens.pop(0)  # 将第一个元素删除
-                    print(tokens)
-                    if tokens[0] == first:
-                        now = datetime.date.today()
-                        if now != today:  # 超过一天,可以继续使用
-                            while p.test_proxies(proxy) == False:
-                                if len(proxys) == 0:
-                                    proxys = baidu.getProxy()
-                                proxy = proxys.pop()
-                            result = baidu.search_photo(
-                                name, tokens[0], longitude,proxy, latitude, head,
-                                imgW, imgH)
-                        else:  # 小于24小时
-                            print("开始休息,等明天:")
-                            print(
-                                time.strftime("%Y-%m-%d %H:%M:%S",
-                                              time.localtime()))
-                            # 今天日期
-                            today = datetime.date.today()
-                            # 明天时间
-                            tomorrow = today + datetime.timedelta(days=1)
-                            # 今天结束时间戳
-                            today_end_time = int(
-                                time.mktime(
-                                    time.strptime(str(tomorrow),
-                                                  '%Y-%m-%d'))) - 1
-                            rest = today_end_time - time.time() + 60
-                            m, s = divmod(rest, 60)
-                            h, m = divmod(m, 60)
-                            print("剩余时间:%02d:%02d:%02d" % (h, m, s))
-                            time.sleep(rest)  # 开始休息
-                            print("天亮了,继续工作")
-                            print(
-                                time.strftime("%Y-%m-%d %H:%M:%S",
-                                              time.localtime()))
-                            today = datetime.date.today()  # 重新计时
-                            while p.test_proxies(proxy) == False:
-                                if len(proxys) == 0:
-                                    proxys = baidu.getProxy()
-                                proxy = proxys.pop()
-                            result = baidu.search_photo(
-                                name, tokens[0],proxy, longitude, latitude, head,
-                                imgW, imgH)
-                    else:
-                        while p.test_proxies(proxy) == False:
-                            if len(proxys) == 0:
-                                proxys = baidu.getProxy()
-                            proxy = proxys.pop()
-                        result = baidu.search_photo(name, tokens[0], proxy,longitude,
-                                                    latitude, head, imgW, imgH)
+    baidu.validtoken()
+    # tokens = baidu.tokens()
+    # today = datetime.date.today()
+    # first = tokens[0].strip()
+    # # baidu.validtoken()
+    # f = open('count.txt', 'r')
+    # count = int(f.readlines()[0])
+    # proxy_time=time.time() # 代理使用时间
+    # proxys=baidu.getProxy()
+    # proxy=proxys.pop()
+    # p = pp.Proxy()
+    # with open('sz_sample.csv', 'r', encoding='utf-8') as data:
+    #     lines = data.readlines()[count-1:]
+    #     for line in lines:
+    #         line = line.strip()
+    #         name = line.split(',')[0]
+    #         open("count.txt", 'w+').write(name)
+    #         longitude = line.split(',')[1].strip()
+    #         latitude = line.split(',')[2].strip()
+    #         if time.time()-proxy_time>8*60:
+    #             # 超过8分钟切换一次代理
+    #             proxy_time=time.time()
+    #             if len(proxys)==0:
+    #                 proxys=baidu.getProxy()
+    #             proxy=proxys.pop()
+    #         headings = [0, 90, 180, 270]
+    #
+    #         for head in headings:
+    #             while p.test_proxies(proxy)==False:
+    #                 if len(proxys) == 0:
+    #                     proxys = baidu.getProxy()
+    #                 proxy = proxys.pop()
+    #
+    #             result = baidu.search_photo(name, tokens[0], proxy,longitude,
+    #                                         latitude, head, imgW, imgH)
+    #             # print(head, line)
+    #             while result == 0:
+    #                 # time.sleep(10)
+    #                 # 超过限制
+    #                 tokens.append(tokens[0])  # 将第一个添加到末尾
+    #                 tokens.pop(0)  # 将第一个元素删除
+    #                 print(tokens)
+    #                 if tokens[0] == first:
+    #                     now = datetime.date.today()
+    #                     if now != today:  # 超过一天,可以继续使用
+    #                         while p.test_proxies(proxy) == False:
+    #                             if len(proxys) == 0:
+    #                                 proxys = baidu.getProxy()
+    #                             proxy = proxys.pop()
+    #                         result = baidu.search_photo(
+    #                             name, tokens[0], longitude,proxy, latitude, head,
+    #                             imgW, imgH)
+    #                     else:  # 小于24小时
+    #                         print("开始休息,等明天:")
+    #                         print(
+    #                             time.strftime("%Y-%m-%d %H:%M:%S",
+    #                                           time.localtime()))
+    #                         # 今天日期
+    #                         today = datetime.date.today()
+    #                         # 明天时间
+    #                         tomorrow = today + datetime.timedelta(days=1)
+    #                         # 今天结束时间戳
+    #                         today_end_time = int(
+    #                             time.mktime(
+    #                                 time.strptime(str(tomorrow),
+    #                                               '%Y-%m-%d'))) - 1
+    #                         rest = today_end_time - time.time() + 60
+    #                         m, s = divmod(rest, 60)
+    #                         h, m = divmod(m, 60)
+    #                         print("剩余时间:%02d:%02d:%02d" % (h, m, s))
+    #                         time.sleep(rest)  # 开始休息
+    #                         print("天亮了,继续工作")
+    #                         print(
+    #                             time.strftime("%Y-%m-%d %H:%M:%S",
+    #                                           time.localtime()))
+    #                         today = datetime.date.today()  # 重新计时
+    #                         while p.test_proxies(proxy) == False:
+    #                             if len(proxys) == 0:
+    #                                 proxys = baidu.getProxy()
+    #                             proxy = proxys.pop()
+    #                         result = baidu.search_photo(
+    #                             name, tokens[0],proxy, longitude, latitude, head,
+    #                             imgW, imgH)
+    #                 else:
+    #                     while p.test_proxies(proxy) == False:
+    #                         if len(proxys) == 0:
+    #                             proxys = baidu.getProxy()
+    #                         proxy = proxys.pop()
+    #                     result = baidu.search_photo(name, tokens[0], proxy,longitude,
+    #                                                 latitude, head, imgW, imgH)
 
