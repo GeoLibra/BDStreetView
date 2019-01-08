@@ -29,7 +29,7 @@ class BaiduAPI():
                 elif result['status'] == '402':
                     s = name + ',' + longitude + ',' + latitude
                     open('un.txt', 'a').write(s + '\n')
-                    return 1
+                    return '402'
                 else:
                     # 获取出问题的写入日志
                     open('log.txt',
@@ -115,6 +115,9 @@ if __name__ == '__main__':
 
                 result = baidu.search_photo(name, tokens[0], proxy,longitude,
                                             latitude, head, imgW, imgH)
+                if result=='402':
+                    # 无效的点则退出本次循环
+                    break
                 # print(head, line)
                 while result == 0:
                     # time.sleep(10)
